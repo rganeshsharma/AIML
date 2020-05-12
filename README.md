@@ -1,4 +1,4 @@
-# AIML-FE
+# AIML-Feature Engineering
 Feature Engineering
 
 Feature Engineering is the most the crucial part of our Machine Learning model building journey and it has always been the most sought after skill for a data scientist. Models can perform well only when we provide clean and concise Features in our data with the help of techniques called Feature Engineering. We will learn a series of techniques which we employ for getting the best possible set of input Features from which our model can find insights and there by helping us make predictions for us in Production after its deployment which will be ultimate goal of ML model Life Cycle Management 

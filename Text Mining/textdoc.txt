@@ -1,0 +1,86 @@
+1) Why does NVDIMM doesn't support compute nodes?
+2) Big and Small Controllers differences 
+3) No need of 105, 106 VLAN's in our RHEV deployment appropriate VLAN's needs to mentioned in the Legend
+4) 
+Installing and Configuring DNS on RHEL
+
+Step 1: Installing BIND DNS
+1.	Install Bind DNS and its utilities on rhel server
+# yum install bind bind-utils
+2.	Start the DNS service (named daemon) for now, then enable it to auto-start at system boot and check if it is up and running using the below commands
+# systemctl start named
+# systemctl enable named
+#systemctl status named
+Step 2: Configuring BIND DNS
+3.	To configure Bind DNS server, first we need to take a backup of the original configuration file /etc/named.conf using following cp command.
+# cp /etc/named.conf /etc/named.conf.orig
+4.	Open /etc/named.conf configuration file for editing as follows
+# vi /etc/named.conf
+5.	Under the options configuration section, comment out the following lines.
+                
+6.	Now look for the allow-query parameter and set its value to our network, which means that only the hosts on our local network can query the DNS Server.
+Example: 
+ 
+Step 3: Creating the Forward and Reverse DNS Zones
+7.	To define the forward and reverse zones, add the following lines at the end of the  /etc/named.conf file.
+Example: where 
+i.	openstack.int: Domain
+ii.	openstack.int.db: Forward Zone file
+iii.	openstack.int.rev: Reverse Zone file
+	 
+Brief information 
+?	type: Defines the role of the server for the zone. The value “master” means it’s an authoritative server where the master copy of the zone data is maintained.
+?	file: specifies the zone’s database file.
+?	allow-update: specifies the hosts which allowed to submit Dynamic DNS updates for master zones. None in the above example.
+
+Step 4: Creating Forward DNS Zone file
+
+8.	Create a Forward zone file under the /var/named directory and add the configurations as shown in below example.
+# vi /var/named/<Forward DNS zone file name>
+	  Example: In the below screen shot 192.168.10.15 is local network which will be primary DNS server 
+	 	
+Brief details:
+TTL: specifies the time-to-live of the RR(Resource Record) and $TTL directive gives a default TTL for every RR without a specific TTL set.
+?	@: It is an alias for the domain name (e.g Openstack.int) defined in the main configuration file.
+?	IN: means the Internet.
+?	SOA: specifies the Start of Authority: who the authoritative name server is (dns-Ppimary.openstack.int), the administrator’s contact info (admin.openstack.int, the @ sign is replaced by a period) and other related information.
+?	NS: means name server.
+?	Serial: this value is used by the DNS server to verify that the contents of a particular zone file are up-to-date.
+?	Refresh: specifies how often a slave DNS server should perform a zone transfer from the master.
+?	Retry: specifies how often a slave should retry a failed zone transfer.
+?	Expire: determines how long a slave server should wait before answering client query when a master is unreachable.
+?	Minimum: sets the minimum TTL for the zone.
+?	A: A host address.
+?	Client server information will be added under PTR records
+
+Step 5: Creating Reverse DNS Zone file
+9.	Similarly, create a Reverse Zone file unser /var/named directory and add the configurations as shown in below example. 
+# vi /var/named/<Reverse DNS zone file name>
+Here, the PTR us the opposite of A record used to map an IP address to a hostname.
+Add DNS client server information under PTR records
+
+ 
+10.	Set the correct ownership permission on the zone files as follows.
+# chown :named /var/named/<Forward DNS zone file>
+# chown :named /var/named/<Reverse DNS zone file>
+11.	 Finally, check the DNS configuration and the zone files has the correct syntax after making the above changes, using the named-checkconf utility (no out means no error)
+# named-checkconf
+# named-checkzone <Domain name> /var/named/<Foward DNS zone file>
+# named-checkzone <Domain name> /var/named/<Reverse DNS zone file>
+Example: 
+12.	Restart the DNS service for the recent changes to take effect.
+# systemctl restart named
+13.	If firewall is not disabled, add the DNS service in the system firewall configuration and reload the firewall settings using below commands.
+# firewall-cmd --permanent --zone=public --add-service=dns
+# firewall-cmd --reload
+If firewall is disabled, we can ignore this step. 
+Step 6: Testing DNS Service from Client
+14.	Login to client machine and configure it to use the above DNS Server. Open the file /etc/resolv.conf and add the DNS server entry which tells the resolver to use the specified nameserver. 
+# vi /etc/resolve.conf
+Add ? nameserver  <DNS Server IP>
+Save the file and close it. Also specify the DNS server in the network interface configuration file. 
+15.	Add the DNS Server IP as resolver to the client machine network interface configuration file /etc/sysconfig/network-scripts/<interface> as shown in the below example.
+16.	Use nslookup utility to query the IP using the hostname and vise versa.
+Example: In this PTR record has been created for www, mail and docs server in the network. 
+17.	Same way we can add multiple DNS client entries under PTR record, both in Forward & Reverse DNS zone files. Then, update the DNS entries at the client server interface level. Finally, we would be able to resolve the IP/hostname of particular DNS client server.
+
